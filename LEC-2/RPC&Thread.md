@@ -15,7 +15,7 @@
 3. 我们喜欢Go中的编程
 	
 	简单的语言学习。
-
+Go学习：https://tour.go-zh.org/list
 Go中的线程是一个有用的结构化工具，Go叫他们goroutines，也有人称其为线程。
 
 为什么线程
