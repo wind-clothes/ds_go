@@ -1,9 +1,6 @@
 ##Gfs
-6.824 2017讲座3：GFS案例研究
 
 Google文件系统
-Sanjay Ghemawat，Howard Gobioff和顺德梁
-SOSP 2003
 
 我们为什么看这篇文章？
   用于映射/缩小的文件系统
@@ -172,7 +169,3 @@ GFS是否达到“理想”的一致性？
     小文件（掌握瓶颈）
     客户可能会看到陈旧的数据
     附加可能重复
-    
-参考
-  http://queue.acm.org/detail.cfm?id=1594206（讨论gfs进化）
-  http://highscalability.com/blog/2010/9/11/googles-colossus-makes-search-real-time-by-dumping-mapreduce.html
