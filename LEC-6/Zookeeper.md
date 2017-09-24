@@ -291,5 +291,4 @@ Zookeeper解决方案：不承诺不过时的数据（默认情况下）
 参考文献：
   ZAB：http://dl.acm.org/citation.cfm?id=2056409
   https://zookeeper.apache.org/
-  https://cs.brown.edu/~mph/Herlihy91/p124-herlihy.pdf（等待免费，普遍
-  物件等）
+  https://cs.brown.edu/~mph/Herlihy91/p124-herlihy.pdf（等待免费，普遍物件等）
