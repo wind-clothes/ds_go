@@ -37,20 +37,21 @@ type GetReply struct {
     Value string
 }
 
-//
 // Server
-//
 
+// 存储的数据结构体
 type KV struct {
     mu       sync.Mutex
     keyvalue map[string]string
 }
 
+// 通过key值从KV中获取值
 func (kv *KV) Get(args *GetArgs, reply *GetReply) error {
     kv.mu.Lock()
     defer kv.mu.Unlock()
 
     reply.Err = "OK"
+    // map方法的返回值为两个一个是值，一个是是否存在
     val, ok := kv.keyvalue[args.Key]
     if ok {
         reply.Err = OK
@@ -62,6 +63,7 @@ func (kv *KV) Get(args *GetArgs, reply *GetReply) error {
     return nil
 }
 
+// 往KV中存储数据
 func (kv *KV) Put(args *PutArgs, reply *PutReply) error {
     kv.mu.Lock()
     defer kv.mu.Unlock()
@@ -71,15 +73,18 @@ func (kv *KV) Put(args *PutArgs, reply *PutReply) error {
     return nil
 }
 
+// server 
 func server() {
     kv := new(KV)
     kv.keyvalue = map[string]string{}
-    rpcs := rpc.NewServer()
+    rpcs := rpc.NewServer
     rpcs.Register(kv)
-    l, e := net.Listen("tcp", ":1234")
+
+    l, e := net.listen("tcp",":1234")
     if e != nil {
         log.Fatal("listen error:", e)
     }
+    // 启动协程来进行通信
     go func() {
         for {
             conn, err := l.Accept()
@@ -91,12 +96,10 @@ func server() {
         }
         l.Close()
         fmt.Printf("Server done\n")
-    }()
+    }
 }
 
-//
 // Client
-//
 
 func Dial() *rpc.Client {
     client, err := rpc.Dial("tcp", ":1234")
@@ -129,10 +132,7 @@ func Put(key string, val string) {
     client.Close()
 }
 
-//
 // main
-//
-
 func main() {
     server()
 

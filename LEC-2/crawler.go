@@ -5,13 +5,65 @@ import (
     "sync"
 )
 
-//
 // Several solutions to the crawler exercise from the Go tutorial (https://tour.golang.org/concurrency/10)
-//
 
-//
 // Serial crawler
-//
+
+// Fetcher
+type Fetcher interface {
+    // Fetch returns the body of URL and
+    // a slice of URLs found on that page.
+    Fetch(url string) (body string, urls []string, err error)
+}
+
+// fakeFetcher is Fetcher that returns canned results.
+type fakeFetcher map[string]*fakeResult
+
+type fakeResult struct {
+    body string
+    urls []string
+}
+
+// fetcher is a populated fakeFetcher.
+var fetcher = fakeFetcher{
+    "http://golang.org/": &fakeResult{
+        "The Go Programming Language",
+        []string{
+            "http://golang.org/pkg/",
+            "http://golang.org/cmd/",
+        },
+    },
+    "http://golang.org/pkg/": &fakeResult{
+        "Packages",
+        []string{
+            "http://golang.org/",
+            "http://golang.org/cmd/",
+            "http://golang.org/pkg/fmt/",
+            "http://golang.org/pkg/os/",
+        },
+    },
+    "http://golang.org/pkg/fmt/": &fakeResult{
+        "Package fmt",
+        []string{
+            "http://golang.org/",
+            "http://golang.org/pkg/",
+        },
+    },
+    "http://golang.org/pkg/os/": &fakeResult{
+        "Package os",
+        []string{
+            "http://golang.org/",
+            "http://golang.org/pkg/",
+        },
+    },
+}
+
+func (f fakeFetcher) Fetch(url string) (string, []string, error) {
+    if res, ok := f[url]; ok {
+        return res.body, res.urls, nil
+    }
+    return "", nil, fmt.Errorf("not found: %s", url)
+}
 
 func CrawlSerial(url string, fetcher Fetcher, fetched map[string]bool) {
     if fetched[url] {
@@ -30,10 +82,7 @@ func CrawlSerial(url string, fetcher Fetcher, fetched map[string]bool) {
     return
 }
 
-//
 // Concurrent crawler with Mutex and WaitGroup
-//
-
 type fetchState struct {
     mu      sync.Mutex
     fetched map[string]bool
@@ -79,9 +128,7 @@ func CrawlConcurrentMutex(url string, fetcher Fetcher, f *fetchState) {
     return
 }
 
-//
 // Concurrent crawler with channels
-//
 
 func dofetch(url1 string, ch chan []string, fetcher Fetcher) {
     body, urls, err := fetcher.Fetch(url1)
@@ -120,10 +167,26 @@ func CrawlConcurrentChannel(url string, fetcher Fetcher) {
     master(ch, fetcher)
 }
 
-//
-// main
-//
-
+/**
+=== Serial===
+found: http://golang.org/ "The Go Programming Language"
+found: http://golang.org/pkg/ "Packages"
+not found: http://golang.org/cmd/
+found: http://golang.org/pkg/fmt/ "Package fmt"
+found: http://golang.org/pkg/os/ "Package os"
+=== ConcurrentMutex ===
+found: http://golang.org/ "The Go Programming Language"
+not found: http://golang.org/cmd/
+found: http://golang.org/pkg/ "Packages"
+found: http://golang.org/pkg/os/ "Package os"
+found: http://golang.org/pkg/fmt/ "Package fmt"
+=== ConcurrentChannel ===
+found: http://golang.org/ "The Go Programming Language"
+not found: http://golang.org/cmd/
+found: http://golang.org/pkg/ "Packages"
+found: http://golang.org/pkg/os/ "Package os"
+found: http://golang.org/pkg/fmt/ "Package fmt"
+*/
 func main() {
     fmt.Printf("=== Serial===\n")
     CrawlSerial("http://golang.org/", fetcher, make(map[string]bool))
@@ -133,63 +196,4 @@ func main() {
 
     fmt.Printf("=== ConcurrentChannel ===\n")
     CrawlConcurrentChannel("http://golang.org/", fetcher)
-}
-
-//
-// Fetcher
-//
-
-type Fetcher interface {
-    // Fetch returns the body of URL and
-    // a slice of URLs found on that page.
-    Fetch(url string) (body string, urls []string, err error)
-}
-
-// fakeFetcher is Fetcher that returns canned results.
-type fakeFetcher map[string]*fakeResult
-
-type fakeResult struct {
-    body string
-    urls []string
-}
-
-func (f fakeFetcher) Fetch(url string) (string, []string, error) {
-    if res, ok := f[url]; ok {
-        return res.body, res.urls, nil
-    }
-    return "", nil, fmt.Errorf("not found: %s", url)
-}
-
-// fetcher is a populated fakeFetcher.
-var fetcher = fakeFetcher{
-    "http://golang.org/": &fakeResult{
-        "The Go Programming Language",
-        []string{
-            "http://golang.org/pkg/",
-            "http://golang.org/cmd/",
-        },
-    },
-    "http://golang.org/pkg/": &fakeResult{
-        "Packages",
-        []string{
-            "http://golang.org/",
-            "http://golang.org/cmd/",
-            "http://golang.org/pkg/fmt/",
-            "http://golang.org/pkg/os/",
-        },
-    },
-    "http://golang.org/pkg/fmt/": &fakeResult{
-        "Package fmt",
-        []string{
-            "http://golang.org/",
-            "http://golang.org/pkg/",
-        },
-    },
-    "http://golang.org/pkg/os/": &fakeResult{
-        "Package os",
-        []string{
-            "http://golang.org/",
-            "http://golang.org/pkg/",
-        },
-    },
 }
