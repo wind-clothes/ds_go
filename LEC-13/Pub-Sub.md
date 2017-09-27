@@ -1,68 +1,64 @@
 ## Pub-Sub
 
-Wormhole: Reliable Pub-Sub to support Geo-replicated Internet Services, Sharma
-et al, 2015.
+Wormhole: Reliable Pub-Sub to support Geo-replicated Internet Services.
 
-蠕虫：可靠的Pub-Sub支持地理复制互联网服务，夏尔马
-等人，2015年。
+Wormhole：可靠的Pub-Sub支持全球复制的互联网服务。
 
 为什么我们读这篇文章？
-  分布式系统中的pub-sub公共构建块
+
+* 分布式系统中的pub-sub公共构建块
     YMB，FAB，Kafka
-  案例研究：Facebook的蠕虫洞
+* 案例研究：Facebook的Wormhole
     由memcache驱动
 
-网站如何扩大负载增长？
-  一个典型的演变历史：
-  一台机器，Web服务器，应用程序，DB
+网站如何扩大负载增长？一个典型的演变历史：
+
+* 一台机器，Web服务器，应用程序，DB
      数据库存储在磁盘，崩溃恢复，事务，SQL
      应用查询DB，格式，HTML和c
      但负载增长，您的PHP应用程序花费太多的CPU时间
-  许多Web FE，一个共享数据库
+* 许多Web FE，一个共享数据库
      一个容易的变化，因为Web服务器+应用程序已经与存储分离
      FE是无状态的，通过DB共享（并发控制）
      但负荷增长; 添加更多FE; 很快单个DB服务器就是瓶颈
-  许多Web FE，数据分组在数据库集群上
+* 许多Web FE，数据分组在数据库集群上
      通过数据块的键分割数据
        应用程序查看关键字（例如用户），选择正确的数据库
      如果没有数据是超级流行的，很好的数据库并行性
      痛苦的交叉分页交易和查询可能不起作用
        难以划分太细
      但是DB很慢，即使是读，为什么不缓存读请求？
-  许多Web FE，许多用于读取的缓存，许多用于写入的DB
+* 许多Web FE，许多用于读取的缓存，许多用于写入的DB
      经济实惠的b / c读取和memcached比DB快10倍
        memcached只是一个内存中的哈希表，很简单
      复杂的b / c DB和memcached可能会失去同步
      （下一个瓶颈将是DB写 - 很难解决）
 
 大Facebook的基础设施图片
-  很多用户，朋友列表，状态，帖子，喜欢，照片
-    新鲜/一致的数据显然不是关键
-    因为人容忍？
-  高负载：每秒数十亿次操作
-    这是一个DB服务器的吞吐量的10,000倍
-  多个数据中心（至少西海岸和东海岸）
-  每个数据中心 - “区域”：
-    “真实”数据通过MySQL数据库分片
-    memcached层（mc）
-    web服务器（memcached的客户端）
-  每个数据中心的数据库都包含完整的副本
-  西海岸是主人，其他人是通过MySQL异步日志复制的奴隶
+
+很多用户，朋友列表，状态，帖子，喜欢，照片，新鲜/一致的数据显然不是关键
+
+* 高负载：每秒数十亿次操作，这是一个DB服务器的吞吐量的10,000倍
+* 多个数据中心（至少西海岸和东海岸）每个数据中心 - “区域”：“真实”数据通过MySQL数据库分片，memcached层（mc），web服务器（memcached的客户端），每个数据中心的数据库都包含完整的副本，西海岸是Master，其他人是通过MySQL异步日志复制的replication
 
 FB在mc中存储什么？
-  也许userID  - > name; userID  - >朋友列表; postID  - > text; 网址 - >喜欢
-  基本上从DB复制数据
+
+也许userID  - > name; userID  - >朋友列表; postID  - > text; 网址 - >喜欢;基本上从DB复制数据
 
 FB应用程序如何使用mc？
-  读：
+```
+
+	读：
     v = get（k）（计算哈希（k）以选择mc服务器）
     如果v为零{
       v =从本地DB获取
       set（k，v）
     }
-  写：
+    写：
     v =新值
     发送k，v到主DB＃可能在偏远地区
+
+```
 
 如何安排不同地区的数据库更新？
   主数据库接收所有写入（类似于PNUTS）
@@ -70,12 +66,13 @@ FB应用程序如何使用mc？
   将事务日志复制到从站
 
 如何安排mc在不同地区了解写作
-  需要在写入后无效/更新mc条目
+
+* 需要在写入后无效/更新mc条目
     eval部分建议避免过时的数据很重要
-  选项1：远程区域的mc轮询其本地DB
+* 选项1：远程区域的mc轮询其本地DB
      增加DB上的读取负载
      什么是轮询间隔？
-  选项2：虫洞酒吧/子
+* 选项2：虫洞酒吧/子
 
 发布/订阅
   分布式系统中的共同构建块
@@ -177,9 +174,8 @@ FB应用程序如何使用mc？
   ＃caravans = 1.06    
 
 性能
-  出版商瓶颈：350 Mbyte / s
+  服务瓶颈：350 Mbyte / s
   用户瓶颈：60万次更新/ s
-  足够用于生产工作量
 
 参考
   Kafka（http://research.microsoft.com/en-us/um/people/srikanth/netdb11/netdb11papers/netdb11-final12.pdf）
