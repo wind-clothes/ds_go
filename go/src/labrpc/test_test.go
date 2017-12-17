@@ -1,12 +1,12 @@
 package labrpc
 
 import (
+	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
-	"fmt"
 )
 
 type JunkArgs struct {
@@ -20,6 +20,7 @@ type JunkServer struct {
 	log1 []string
 	log2 []int
 }
+
 func (js *JunkServer) Handler1(args string, reply *int) {
 	js.mu.Lock()
 	defer js.mu.Unlock()
@@ -38,10 +39,12 @@ func (js *JunkServer) Handler3(args int, reply *int) {
 	time.Sleep(20 * time.Second)
 	*reply = -args
 }
+
 // args is a pointer
 func (js *JunkServer) Handler4(args *JunkArgs, reply *JunkReply) {
 	reply.X = "pointer"
 }
+
 // args is a not pointer
 func (js *JunkServer) Handler5(args JunkArgs, reply *JunkReply) {
 	reply.X = "no pointer"
@@ -152,7 +155,7 @@ func TestDisconnect(t *testing.T) {
 		reply := 0
 		e.Call("JunkServer.Handler1", "9099", &reply)
 
-		t.Logf("success reply from Handler1 %v",reply)
+		t.Logf("success reply from Handler1 %v", reply)
 		if reply != 9099 {
 			t.Fatalf("wrong reply from Handler1")
 		}

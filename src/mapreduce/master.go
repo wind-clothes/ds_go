@@ -62,7 +62,7 @@ func Sequential(jobName string, files []string, nreduce int,
 		switch phase {
 		case mapPhase:
 			for i, f := range mr.files {
-				
+
 				doMap(mr.jobName, i, f, mr.nReduce, mapF)
 			}
 		case reducePhase:

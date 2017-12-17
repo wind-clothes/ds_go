@@ -1,9 +1,9 @@
 package mapreduce
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
 	"sort"
 )
 
@@ -41,16 +41,16 @@ func doReduce(
 
 	keyValues := make(map[string][]string)
 	for i := 0; i < nMap; i++ {
-		file,err := os.Open(reduceName(jobName, i, reduceTaskNumber))
+		file, err := os.Open(reduceName(jobName, i, reduceTaskNumber))
 		if err != nil {
-			fmt.Printf("reduce file:%s can't open\n",reduceName(jobName, i, reduceTaskNumber))
+			fmt.Printf("reduce file:%s can't open\n", reduceName(jobName, i, reduceTaskNumber))
 		} else {
-			enc := json.NewDecoder(file)	
+			enc := json.NewDecoder(file)
 			for {
 				var kv KeyValue
 				err := enc.Decode(&kv)
 				if err != nil {
-					break  // 此时文件解码完毕
+					break // 此时文件解码完毕
 				}
 				_, ok := keyValues[kv.Key]
 				if !ok { // 说明当前并没有这个key
@@ -65,17 +65,17 @@ func doReduce(
 	for k, _ := range keyValues {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)  // 递增排序
+	sort.Strings(keys) // 递增排序
 
-	file,err := os.Create(mergeName(jobName, reduceTaskNumber))
+	file, err := os.Create(mergeName(jobName, reduceTaskNumber))
 	if err != nil {
-		fmt.Printf("reduce merge file:%s can't open\n",mergeName(jobName, reduceTaskNumber))
+		fmt.Printf("reduce merge file:%s can't open\n", mergeName(jobName, reduceTaskNumber))
 		return
 	}
 	enc := json.NewEncoder(file)
 
-	for _,k := range keys {
-		enc.Encode(KeyValue{k, reduceF(k,keyValues[k])})
+	for _, k := range keys {
+		enc.Encode(KeyValue{k, reduceF(k, keyValues[k])})
 	}
 	file.Close()
 }

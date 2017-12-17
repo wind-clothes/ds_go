@@ -96,7 +96,7 @@ func server() {
         }
         l.Close()
         fmt.Printf("Server done\n")
-    }
+    }()
 }
 
 // Client

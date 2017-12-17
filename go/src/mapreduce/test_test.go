@@ -17,6 +17,7 @@ const (
 	nNumber = 100000
 	nMap    = 100
 	nReduce = 50
+	master  = "master"
 )
 
 // Create input file with N numbers
@@ -28,8 +29,7 @@ func MapFunc(file string, value string) (res []KeyValue) {
 	debug("Map %v\n", value)
 
 	words := strings.Fields(value)
-	
-	
+
 	for _, w := range words {
 		kv := KeyValue{w, ""}
 		res = append(res, kv)
@@ -148,7 +148,7 @@ func cleanup(mr *Master) {
 }
 
 func TestSequentialSingle(t *testing.T) {
-	mr := Sequential("test", makeInputs(1), 1, MapFunc, ReduceFunc)
+	mr := Sequential("test", makeInputs(1), 1, MapFunc, ReduceFunc, master)
 	mr.Wait()
 	check(t, mr.files)
 	checkWorker(t, mr.stats)
@@ -156,7 +156,7 @@ func TestSequentialSingle(t *testing.T) {
 }
 
 func TestSequentialMany(t *testing.T) {
-	mr := Sequential("test", makeInputs(5), 3, MapFunc, ReduceFunc)
+	mr := Sequential("test", makeInputs(5), 3, MapFunc, ReduceFunc, master)
 	mr.Wait()
 	check(t, mr.files)
 	checkWorker(t, mr.stats)

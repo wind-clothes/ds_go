@@ -1,15 +1,14 @@
 package raftkv
 
 import (
+	"bytes"
 	"encoding/gob"
 	"labrpc"
 	"log"
 	"raft"
 	"sync"
 	"time"
-	"bytes"
 )
-
 
 const Debug = 0
 
@@ -20,18 +19,16 @@ func DPrintf(format string, a ...interface{}) (n int, err error) {
 	return
 }
 
-
 type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Kind string //"Put" or "Append" "Get"
-	Key string
+	Kind  string //"Put" or "Append" "Get"
+	Key   string
 	Value string
-	Id int64
+	Id    int64
 	ReqId int
 }
-
 
 type RaftKV struct {
 	mu      sync.Mutex
@@ -42,9 +39,9 @@ type RaftKV struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
-	db			map[string]string
-	ack 		map[int64]int
-	result	map[int]chan Op
+	db     map[string]string
+	ack    map[int64]int
+	result map[int]chan Op
 }
 
 func (kv *RaftKV) AppendEntryToLog(entry Op) bool {
@@ -54,9 +51,9 @@ func (kv *RaftKV) AppendEntryToLog(entry Op) bool {
 	}
 
 	kv.mu.Lock()
-	ch,ok := kv.result[index]
+	ch, ok := kv.result[index]
 	if !ok {
-		ch = make(chan Op,1)
+		ch = make(chan Op, 1)
 		kv.result[index] = ch
 	}
 	kv.mu.Unlock()
@@ -69,10 +66,10 @@ func (kv *RaftKV) AppendEntryToLog(entry Op) bool {
 	}
 }
 
-func (kv *RaftKV) CheckDup(id int64,reqid int) bool {
+func (kv *RaftKV) CheckDup(id int64, reqid int) bool {
 	//kv.mu.Lock()
 	//defer kv.mu.Unlock()
-	v,ok := kv.ack[id]
+	v, ok := kv.ack[id]
 	if ok {
 		return v >= reqid
 	}
@@ -81,7 +78,7 @@ func (kv *RaftKV) CheckDup(id int64,reqid int) bool {
 
 func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
-	entry := Op{Kind:"Get",Key:args.Key,Id:args.Id,ReqId:args.ReqID}
+	entry := Op{Kind: "Get", Key: args.Key, Id: args.Id, ReqId: args.ReqID}
 
 	ok := kv.AppendEntryToLog(entry)
 	if !ok {
@@ -110,7 +107,7 @@ func (kv *RaftKV) Apply(args Op) {
 
 func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
-	entry := Op{Kind:args.Op,Key:args.Key,Value:args.Value,Id:args.Id,ReqId:args.ReqID}
+	entry := Op{Kind: args.Op, Key: args.Key, Value: args.Value, Id: args.Id, ReqId: args.ReqID}
 	ok := kv.AppendEntryToLog(entry)
 	if !ok {
 		reply.WrongLeader = true
@@ -157,7 +154,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.db = make(map[string]string)
 	kv.ack = make(map[int64]int)
 	kv.result = make(map[int]chan Op)
-	kv.applyCh = make(chan raft.ApplyMsg,100)
+	kv.applyCh = make(chan raft.ApplyMsg, 100)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
 	go func() {
@@ -181,15 +178,15 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 			} else {
 				op := msg.Command.(Op)
 				kv.mu.Lock()
-				if !kv.CheckDup(op.Id,op.ReqId) {
+				if !kv.CheckDup(op.Id, op.ReqId) {
 					kv.Apply(op)
 				}
 
-				ch,ok := kv.result[msg.Index]
+				ch, ok := kv.result[msg.Index]
 				if ok {
 					select {
-						case <-kv.result[msg.Index]:
-						default:
+					case <-kv.result[msg.Index]:
+					default:
 					}
 					ch <- op
 				} else {
@@ -203,7 +200,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 					e.Encode(kv.db)
 					e.Encode(kv.ack)
 					data := w.Bytes()
-					go kv.rf.StartSnapshot(data,msg.Index)
+					go kv.rf.StartSnapshot(data, msg.Index)
 				}
 				kv.mu.Unlock()
 			}

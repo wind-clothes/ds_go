@@ -1,20 +1,33 @@
 package mapreduce
 
 import (
-	"hash/fnv"
-	"fmt"
-	"os"
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"time"
+	//"io/ioutil"
+	"os"
 )
+
+type FileInfo interface {
+	Name() string       // base name of the file
+	Size() int64        // length in bytes for regular files; system-dependent for others
+	Mode() os.FileMode  // file mode bits
+	ModTime() time.Time // modification time
+	IsDir() bool        // abbreviation for Mode().IsDir()
+	Sys() interface{}   // underlying data source (can return nil)
+}
 
 // doMap does the job of a map worker: it reads one of the input files
 // (inFile), calls the user-defined map function (mapF) for that file's
 // contents, and partitions the output into nReduce intermediate files.
+// doMap的工作内容如下：读取输入文件（inFile）, 调用用户自己定义的map函数mapF处理文件内容，
+// 分割输出到nReduce份中间文件。
 func doMap(
-	jobName string, // the name of the MapReduce job
-	mapTaskNumber int, // which map task this is
+	jobName string,
+	mapTaskNumber int,
 	inFile string,
-	nReduce int, // the number of reduce task that will be run ("R" in the paper)
+	toNReduce int,
 	mapF func(file string, contents string) []KeyValue,
 ) {
 	// TODO:
@@ -43,53 +56,69 @@ func doMap(
 	//     err := enc.Encode(&kv)
 	//
 	// Remember to close the file after you have written all the values!
-/*
-	type FileInfo interface {
-	    Name() string       // base name of the file
-	    Size() int64        // length in bytes for regular files; system-dependent for others
-	    Mode() FileMode     // file mode bits
-	    ModTime() time.Time // modification time
-	    IsDir() bool        // abbreviation for Mode().IsDir()
-	    Sys() interface{}   // underlying data source (can return nil)
-	}
-*/
 
+	// 你需要重写这个函数。你可以通过reduceName获取文件名,使用map任务的输入为reduce任务提供输出。
+	// 下面给出的ihash函数应该被用于决定每个key属于的文件。
+	//
+	// map任务的中间输入以多文件的形式保存在文件系统上,它们的文件名说明是哪个map任务产生的,同时也说明哪个reduce任务会处理它们。
+	// 想出如何存储键/值对在磁盘上的方案可能会非常棘手,特别地, 当我们考虑到key和value都包含新行(newlines),引用(quotes),或者其他
+	// 你想到的字符。
+	//
+	// 有一种格式经常被用来序列化数据到字节流,然后可以通过字节流进行重建，这种格式是json。你没有被强制使用JSON,但是reduce任务的输出
+	// 必须是JSON格式,熟悉JSON数据格式会对你有所帮助。你可以使用下面的代码将数据结构以JSON字符串的形式输出。对应的解码函数在common_reduce.go
+	// 可以找到。
+	//
+	//   enc := json.NewEncoder(file)
+	//   for _, kv := ... {
+	//     err := enc.Encode(&kv)
+	//
+	//   记得关闭文件当你写完全部的数据之后。
+
+	// 注：Map的大致流程如下(官方教材建议不上传代码，所以去除)
+	// S1: 　打开输入文件，并且读取全部数据
+	// S2：  调用用户自定义的mapF函数,分检数据,在word count的案例中分割成单词
+	// S3：  将mapF返回的数据根据key分类,跟文件名对应(reduceName获取文件名)
+	// S4: 　将分类好的数据分别写入不同文件
+
+	// S1
 	file, err := os.Open(inFile)
 	if err == nil {
-		//fmt.Printf("file:%s opened\n",inFile)
+		inf, _ := file.Stat()
+		contents := make([]byte, inf.Size())
+		file.Read(contents)
+		file.Close()
+
+		// 分词处理，将文件的内容转化为K-V形式的数据
+		kv := mapF(inFile, string(contents))
+		fileSence := make([]*json.Encoder, toNReduce)
+		files := make([]*os.File, toNReduce)
+
+		// 创建map output文件
+		for i := range fileSence {
+			file, err := os.Create(reduceName(jobName, mapTaskNumber, i))
+			if err != nil {
+				fmt.Printf("%s Create Failed\n", reduceName(jobName, mapTaskNumber, toNReduce))
+			} else {
+				fileSence[i] = json.NewEncoder(file)
+				files[i] = file
+			}
+		}
+		// 将数据按照json的编码格式写入文件中
+		for _, v := range kv {
+			err := fileSence[ihash(v.Key)%uint32(toNReduce)].Encode(&v)
+			if err != nil {
+				fmt.Printf("%s Encode Failed %v\n", v, err)
+			}
+		}
+
+		// 关闭所有的文件
+		for _, f := range files {
+			f.Close()
+		}
+
 	} else {
-		fmt.Print(err)
-	}
-	inf, err := file.Stat()
-
-	contents := make([]byte,inf.Size())
-	file.Read(contents)
-	file.Close()
-
-	kv := mapF(inFile,string(contents))
-	filesenc := make([]*json.Encoder,nReduce)
-	files := make([]*os.File,nReduce)
-
-	for i := range filesenc {
-		file,err := os.Create(reduceName(jobName, mapTaskNumber, i))
-		if err != nil {
-			fmt.Printf("%s Create Failed\n",reduceName(jobName, mapTaskNumber, nReduce))
-		} else {
-			//fmt.Printf("%s Created\n",reduceName(jobName, mapTaskNumber, nReduce))
-			filesenc[i] = json.NewEncoder(file)
-			files[i] = file
-		}
-	}
-
-	for _,v := range kv {
-		err := filesenc[ihash(v.Key) % uint32(nReduce)].Encode(&v)
-		if err != nil {
-			fmt.Printf("%s Encode Failed %v\n",v,err)
-		}
-	}
-
-	for _,f := range files {
-		f.Close()
+		fmt.Printf("open file:%s is error msg is :%s", inFile, err)
+		file.Close()
 	}
 }
 

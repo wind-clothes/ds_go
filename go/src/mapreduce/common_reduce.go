@@ -1,9 +1,9 @@
 package mapreduce
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
 	"sort"
 )
 
@@ -39,18 +39,32 @@ func doReduce(
 	// }
 	// file.Close()
 
+	// 你需要完成这个函数。你可与获取到来自map任务生产的中间数据，通过reduceName获取到文件名。
+	//  记住你应该编码了值到中间文件,所以你需要解码它们。如果你选择了使用JSON,你通过创建decoder读取到多个
+	// 解码之后的值，直接调用Decode直到返回错误。
+	//
+	// 你应该将reduce输出以JSON编码的方式保存到文件，文件名通过mergeName获取。我们建议你在这里使用JSON,
+
+	// key是中间文件里面键值，value是字符串,这个map用于存储相同键值元素的合并
+
+	// Reduce的过程如下：
+	//   S1: 获取到Map产生的文件并打开(reduceName获取文件名)
+	// 　S2：获取中间文件的数据(对多个map产生的文件更加值合并)
+	// 　S3：打开文件（mergeName获取文件名），将用于存储Reduce任务的结果
+	// 　S4：合并结果之后(S2)，进行reduceF操作, work count的操作将结果累加，也就是word出现在这个文件中出现的次数
+
 	keyValues := make(map[string][]string)
 	for i := 0; i < nMap; i++ {
-		file,err := os.Open(reduceName(jobName, i, reduceTaskNumber))
+		file, err := os.Open(reduceName(jobName, i, reduceTaskNumber))
 		if err != nil {
-			fmt.Printf("reduce file:%s can't open\n",reduceName(jobName, i, reduceTaskNumber))
+			fmt.Printf("reduce file:%s can't open\n", reduceName(jobName, i, reduceTaskNumber))
 		} else {
-			enc := json.NewDecoder(file)	
+			enc := json.NewDecoder(file)
 			for {
 				var kv KeyValue
 				err := enc.Decode(&kv)
 				if err != nil {
-					break  // 此时文件解码完毕
+					break // 此时文件解码完毕
 				}
 				_, ok := keyValues[kv.Key]
 				if !ok { // 说明当前并没有这个key
@@ -65,17 +79,17 @@ func doReduce(
 	for k, _ := range keyValues {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)  // 递增排序
+	sort.Strings(keys) // 递增排序
 
-	file,err := os.Create(mergeName(jobName, reduceTaskNumber))
+	file, err := os.Create(mergeName(jobName, reduceTaskNumber))
 	if err != nil {
-		fmt.Printf("reduce merge file:%s can't open\n",mergeName(jobName, reduceTaskNumber))
+		fmt.Printf("reduce merge file:%s can't open\n", mergeName(jobName, reduceTaskNumber))
 		return
 	}
 	enc := json.NewEncoder(file)
 
-	for _,k := range keys {
-		enc.Encode(KeyValue{k, reduceF(k,keyValues[k])})
+	for _, k := range keys {
+		enc.Encode(KeyValue{k, reduceF(k, keyValues[k])})
 	}
 	file.Close()
 }

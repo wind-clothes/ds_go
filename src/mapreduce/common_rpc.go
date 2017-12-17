@@ -61,6 +61,6 @@ func call(srv string, rpcname string,
 		return true
 	}
 
-	fmt.Printf("call err:%s\n",err)
+	fmt.Printf("call err:%s\n", err)
 	return false
 }

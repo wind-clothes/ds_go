@@ -8,9 +8,9 @@ import "sync"
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// You will have to modify this struct.
-	id int64
+	id    int64
 	reqid int
-	mu      sync.Mutex
+	mu    sync.Mutex
 }
 
 func nrand() int64 {
@@ -52,13 +52,13 @@ func (ck *Clerk) Get(key string) string {
 	ck.reqid++
 	ck.mu.Unlock()
 	for {
-		for _,v := range ck.servers {
+		for _, v := range ck.servers {
 			var reply GetReply
 			ok := v.Call("RaftKV.Get", &args, &reply)
 			if ok && reply.WrongLeader == false {
 				//if reply.Err == ErrNoKey {
 				//	reply.Value = ""
-			//	}
+				//	}
 				return reply.Value
 			}
 		}
@@ -87,7 +87,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	ck.reqid++
 	ck.mu.Unlock()
 	for {
-		for _,v := range ck.servers {
+		for _, v := range ck.servers {
 			var reply PutAppendReply
 			ok := v.Call("RaftKV.PutAppend", &args, &reply)
 			if ok && reply.WrongLeader == false {

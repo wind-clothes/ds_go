@@ -64,7 +64,7 @@ func TestReElection(t *testing.T) {
 
 	// if there's no quorum, no leader should
 	// be elected.
-  //fmt.Printf("if there's no quorum.\n")
+	//fmt.Printf("if there's no quorum.\n")
 	cfg.disconnect(leader2)
 	cfg.disconnect((leader2 + 1) % servers)
 	time.Sleep(2 * RaftElectionTimeout)
@@ -107,7 +107,7 @@ func TestBasicAgree(t *testing.T) {
 }
 
 func TestFailAgree(t *testing.T) {
-//	return
+	//	return
 	servers := 3
 	cfg := make_config(t, servers, false)
 	defer cfg.cleanup()
@@ -308,7 +308,7 @@ func TestRejoin(t *testing.T) {
 
 	leader1 := cfg.checkOneLeader()
 	cfg.disconnect(leader1)
-//	fmt.Printf("leader network failure ...\n")
+	//	fmt.Printf("leader network failure ...\n")
 	// make old leader try to agree on some entries
 	cfg.rafts[leader1].Start(102)
 	cfg.rafts[leader1].Start(103)
@@ -330,7 +330,7 @@ func TestRejoin(t *testing.T) {
 	// all together now
 
 	cfg.connect(leader2)
-//	fmt.Printf("all together now...\n")
+	//	fmt.Printf("all together now...\n")
 	cfg.one(105, servers)
 
 	fmt.Printf("  ... Passed\n")

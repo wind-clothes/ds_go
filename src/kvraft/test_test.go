@@ -389,19 +389,19 @@ func TestPersistConcurrent(t *testing.T) {
 }
 
 func TestPersistConcurrentUnreliable(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with concurrent clients, unreliable ...\n")
 	GenericTest(t, "persistconcurunreliable", 5, true, true, false, -1)
 }
 
 func TestPersistPartition(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with concurrent clients and repartitioning servers...\n")
 	GenericTest(t, "persistpart", 5, false, true, true, -1)
 }
 
 func TestPersistPartitionUnreliable(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with concurrent clients and repartitioning servers, unreliable...\n")
 	GenericTest(t, "persistpartunreliable", 5, true, true, true, -1)
 }
@@ -468,19 +468,19 @@ func TestSnapshotRPC(t *testing.T) {
 }
 
 func TestSnapshotRecover(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with one client and snapshots ...\n")
 	GenericTest(t, "snapshot", 1, false, true, false, 1000)
 }
 
 func TestSnapshotRecoverManyClients(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with several clients and snapshots ...\n")
 	GenericTest(t, "snapshotunreliable", 20, false, true, false, 1000)
 }
 
 func TestSnapshotUnreliable(t *testing.T) {
-//	return
+	//	return
 	fmt.Printf("Test: persistence with several clients, snapshots, unreliable ...\n")
 	GenericTest(t, "snapshotunreliable", 5, true, false, false, 1000)
 }
