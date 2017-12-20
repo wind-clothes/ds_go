@@ -1,4 +1,4 @@
-package shardkv
+package raft_shardkv
 
 import "shardmaster"
 import "labrpc"
@@ -46,8 +46,8 @@ type config struct {
 	net *labrpc.Network
 
 	nmasters      int
-	masterservers []*shardmaster.ShardMaster
-	mck           *shardmaster.Clerk
+	masterservers []*raft_shardmaster.ShardMaster
+	mck           *raft_shardmaster.Clerk
 
 	ngroups int
 	n       int // servers per k/v group
@@ -101,14 +101,14 @@ func (cfg *config) makeClient() *Clerk {
 	endnames := make([]string, cfg.n)
 	for j := 0; j < cfg.nmasters; j++ {
 		endnames[j] = randstring(20)
-		ends[j] = cfg.net.MakeEnd(endnames[j])
+		ends[j] = cfg.net.MakEnd(endnames[j])
 		cfg.net.Connect(endnames[j], cfg.mastername(j))
 		cfg.net.Enable(endnames[j], true)
 	}
 
 	ck := MakeClerk(ends, func(servername string) *labrpc.ClientEnd {
 		name := randstring(20)
-		end := cfg.net.MakeEnd(name)
+		end := cfg.net.MakEnd(name)
 		cfg.net.Connect(name, servername)
 		cfg.net.Enable(name, true)
 		return end
@@ -193,7 +193,7 @@ func (cfg *config) StartServer(gi int, i int) {
 	// and the connections to other servers in this group.
 	ends := make([]*labrpc.ClientEnd, cfg.n)
 	for j := 0; j < cfg.n; j++ {
-		ends[j] = cfg.net.MakeEnd(gg.endnames[i][j])
+		ends[j] = cfg.net.MakEnd(gg.endnames[i][j])
 		cfg.net.Connect(gg.endnames[i][j], cfg.servername(gg.gid, j))
 		cfg.net.Enable(gg.endnames[i][j], true)
 	}
@@ -203,7 +203,7 @@ func (cfg *config) StartServer(gi int, i int) {
 	gg.mendnames[i] = make([]string, cfg.nmasters)
 	for j := 0; j < cfg.nmasters; j++ {
 		gg.mendnames[i][j] = randstring(20)
-		mends[j] = cfg.net.MakeEnd(gg.mendnames[i][j])
+		mends[j] = cfg.net.MakEnd(gg.mendnames[i][j])
 		cfg.net.Connect(gg.mendnames[i][j], cfg.mastername(j))
 		cfg.net.Enable(gg.mendnames[i][j], true)
 	}
@@ -224,7 +224,7 @@ func (cfg *config) StartServer(gi int, i int) {
 		gg.gid, mends,
 		func(servername string) *labrpc.ClientEnd {
 			name := randstring(20)
-			end := cfg.net.MakeEnd(name)
+			end := cfg.net.MakEnd(name)
 			cfg.net.Connect(name, servername)
 			cfg.net.Enable(name, true)
 			return end
@@ -249,14 +249,14 @@ func (cfg *config) StartMasterServer(i int) {
 	ends := make([]*labrpc.ClientEnd, cfg.nmasters)
 	for j := 0; j < cfg.nmasters; j++ {
 		endname := randstring(20)
-		ends[j] = cfg.net.MakeEnd(endname)
+		ends[j] = cfg.net.MakEnd(endname)
 		cfg.net.Connect(endname, cfg.mastername(j))
 		cfg.net.Enable(endname, true)
 	}
 
 	p := raft.MakePersister()
 
-	cfg.masterservers[i] = shardmaster.StartServer(ends, i, p)
+	cfg.masterservers[i] = raft_shardmaster.StartServer(ends, i, p)
 
 	msvc := labrpc.MakeService(cfg.masterservers[i])
 	rfsvc := labrpc.MakeService(cfg.masterservers[i].Raft())
@@ -266,17 +266,17 @@ func (cfg *config) StartMasterServer(i int) {
 	cfg.net.AddServer(cfg.mastername(i), srv)
 }
 
-func (cfg *config) shardclerk() *shardmaster.Clerk {
+func (cfg *config) shardclerk() *raft_shardmaster.Clerk {
 	// ClientEnds to talk to master service.
 	ends := make([]*labrpc.ClientEnd, cfg.nmasters)
 	for j := 0; j < cfg.nmasters; j++ {
 		name := randstring(20)
-		ends[j] = cfg.net.MakeEnd(name)
+		ends[j] = cfg.net.MakEnd(name)
 		cfg.net.Connect(name, cfg.mastername(j))
 		cfg.net.Enable(name, true)
 	}
 
-	return shardmaster.MakeClerk(ends)
+	return raft_shardmaster.MakeClerk(ends)
 }
 
 // tell the shardmaster that a group is joining.
@@ -319,7 +319,7 @@ func make_config(t *testing.T, n int, unreliable bool, maxraftstate int) *config
 
 	// master
 	cfg.nmasters = 3
-	cfg.masterservers = make([]*shardmaster.ShardMaster, cfg.nmasters)
+	cfg.masterservers = make([]*raft_shardmaster.ShardMaster, cfg.nmasters)
 	for i := 0; i < cfg.nmasters; i++ {
 		cfg.StartMasterServer(i)
 	}

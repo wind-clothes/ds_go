@@ -1,4 +1,4 @@
-package shardkv
+package raft_shardkv
 
 // import "shardmaster"
 import "labrpc"

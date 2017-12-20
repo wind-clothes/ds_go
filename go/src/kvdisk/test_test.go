@@ -1,7 +1,6 @@
 package diskv
 
 import "testing"
-import "shardmaster"
 import "runtime"
 import "strconv"
 import "strings"
@@ -16,7 +15,11 @@ import "math/rand"
 import crand "crypto/rand"
 import "encoding/base64"
 import "path/filepath"
-import "sync/atomic"
+import (
+	"sync/atomic"
+	"paxos-shardmaster"
+	"shardmaster"
+)
 
 type tServer struct {
 	p       *os.Process
@@ -36,8 +39,8 @@ type tCluster struct {
 	t           *testing.T
 	dir         string
 	unreliable  bool
-	masters     []*shardmaster.ShardMaster
-	mck         *shardmaster.Clerk
+	masters     []*paxos_shardmaster.ShardMaster
+	mck         *paxos_shardmaster.Clerk
 	masterports []string
 	groups      []*tGroup
 }
@@ -137,8 +140,8 @@ func (tc *tCluster) cleanup() {
 	os.RemoveAll(tc.dir)
 }
 
-func (tc *tCluster) shardclerk() *shardmaster.Clerk {
-	return shardmaster.MakeClerk(tc.masterports)
+func (tc *tCluster) shardclerk() *paxos_shardmaster.Clerk {
+	return paxos_shardmaster.MakeClerk(tc.masterports)
 }
 
 func (tc *tCluster) clerk() *Clerk {
@@ -196,14 +199,14 @@ func setup(t *testing.T, tag string, ngroups int, nreplicas int, unreliable bool
 	os.RemoveAll(tc.dir)
 	os.Mkdir(tc.dir, 0777)
 
-	tc.masters = make([]*shardmaster.ShardMaster, nmasters)
+	tc.masters = make([]*paxos_shardmaster.ShardMaster, nmasters)
 	tc.masterports = make([]string, nmasters)
 	for i := 0; i < nmasters; i++ {
 		tc.masterports[i] = tc.newport()
 	}
 	log.SetOutput(ioutil.Discard) // suppress method errors &c
 	for i := 0; i < nmasters; i++ {
-		tc.masters[i] = shardmaster.StartServer(tc.masterports, i)
+		tc.masters[i] = paxos_shardmaster.StartServer(tc.masterports, i)
 	}
 	log.SetOutput(os.Stdout) // re-enable error output.
 	tc.mck = tc.shardclerk()
@@ -304,7 +307,7 @@ func Test4Move(t *testing.T) {
 	ck := tc.clerk()
 
 	// insert one key per shard
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		ck.Put(string('0'+i), string('0'+i))
 	}
 
@@ -313,7 +316,7 @@ func Test4Move(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// check that keys are still there.
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		if ck.Get(string('0'+i)) != string('0'+i) {
 			t.Fatalf("missing key/value")
 		}
@@ -326,7 +329,7 @@ func Test4Move(t *testing.T) {
 
 	count := int32(0)
 	var mu sync.Mutex
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		go func(me int) {
 			myck := tc.clerk()
 			v := myck.Get(string('0' + me))
@@ -343,11 +346,11 @@ func Test4Move(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	ccc := atomic.LoadInt32(&count)
-	if ccc > shardmaster.NShards/3 && ccc < 2*(shardmaster.NShards/3) {
+	if ccc > paxos_shardmaster.NShards/3 && ccc < 2*(paxos_shardmaster.NShards/3) {
 		fmt.Printf("  ... Passed\n")
 	} else {
 		t.Fatalf("%v keys worked after killing 1/2 of groups; wanted %v",
-			ccc, shardmaster.NShards/2)
+			ccc, paxos_shardmaster.NShards/2)
 	}
 }
 
@@ -448,7 +451,7 @@ func doConcurrent(t *testing.T, unreliable bool) {
 
 				gi := rand.Int() % len(tc.groups)
 				gid := tc.groups[gi].gid
-				mymck.Move(rand.Int()%shardmaster.NShards, gid)
+				mymck.Move(rand.Int()%paxos_shardmaster.NShards, gid)
 
 				time.Sleep(time.Duration(rand.Int()%30) * time.Millisecond)
 			}

@@ -1,4 +1,4 @@
-package shardkv
+package raft_shardkv
 
 //
 // client code to talk to a sharded key/value service.
@@ -24,7 +24,7 @@ func key2shard(key string) int {
 	if len(key) > 0 {
 		shard = int(key[0])
 	}
-	shard %= shardmaster.NShards
+	shard %= raft_shardmaster.NShards
 	return shard
 }
 
@@ -36,8 +36,8 @@ func nrand() int64 {
 }
 
 type Clerk struct {
-	sm       *shardmaster.Clerk
-	config   shardmaster.Config
+	sm       *raft_shardmaster.Clerk
+	config   raft_shardmaster.Config
 	make_end func(string) *labrpc.ClientEnd
 	// You will have to modify this struct.
 }
@@ -53,7 +53,7 @@ type Clerk struct {
 //
 func MakeClerk(masters []*labrpc.ClientEnd, make_end func(string) *labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
-	ck.sm = shardmaster.MakeClerk(masters)
+	ck.sm = raft_shardmaster.MakeClerk(masters)
 	ck.make_end = make_end
 	// You'll have to add code here.
 	return ck

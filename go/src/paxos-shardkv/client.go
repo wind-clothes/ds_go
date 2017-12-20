@@ -1,5 +1,6 @@
-package diskv
+package paxos_shardkv
 
+import "paxos-shardmaster"
 import "net/rpc"
 import "time"
 import "sync"
@@ -7,7 +8,7 @@ import "fmt"
 import "crypto/rand"
 import (
 	"math/big"
-	"paxos-shardmaster"
+	"shardmaster"
 )
 
 type Clerk struct {
@@ -75,7 +76,7 @@ func key2shard(key string) int {
 	if len(key) > 0 {
 		shard = int(key[0])
 	}
-	shard %= paxos_shardmaster.NShards
+	shard %= shardmaster.NShards
 	return shard
 }
 
@@ -103,7 +104,7 @@ func (ck *Clerk) Get(key string) string {
 				args := &GetArgs{}
 				args.Key = key
 				var reply GetReply
-				ok := call(srv, "DisKV.Get", args, &reply)
+				ok := call(srv, "ShardKV.Get", args, &reply)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
 					return reply.Value
 				}
@@ -142,7 +143,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 				args.Value = value
 				args.Op = op
 				var reply PutAppendReply
-				ok := call(srv, "DisKV.PutAppend", args, &reply)
+				ok := call(srv, "ShardKV.PutAppend", args, &reply)
 				if ok && reply.Err == OK {
 					return
 				}

@@ -1,9 +1,10 @@
-package kvpaxos
+package paxos_shardkv
 
 import "net"
 import "fmt"
 import "net/rpc"
 import "log"
+import "time"
 import "paxos"
 import "sync"
 import "sync/atomic"
@@ -11,6 +12,10 @@ import "os"
 import "syscall"
 import "encoding/gob"
 import "math/rand"
+import (
+	"paxos-shardmaster"
+)
+
 
 const Debug = 0
 
@@ -21,50 +26,60 @@ func DPrintf(format string, a ...interface{}) (n int, err error) {
 	return
 }
 
+
 type Op struct {
 	// Your definitions here.
-	// Field names must start with capital letters,
-	// otherwise RPC will break.
 }
 
-type KVPaxos struct {
+
+type ShardKV struct {
 	mu         sync.Mutex
 	l          net.Listener
 	me         int
 	dead       int32 // for testing
 	unreliable int32 // for testing
+	sm         *paxos_shardmaster.Clerk
 	px         *paxos.Paxos
+
+	gid int64 // my replica group ID
 
 	// Your definitions here.
 }
 
-func (kv *KVPaxos) Get(args *GetArgs, reply *GetReply) error {
+
+func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) error {
 	// Your code here.
 	return nil
 }
 
-func (kv *KVPaxos) PutAppend(args *PutAppendArgs, reply *PutAppendReply) error {
+// RPC handler for client Put and Append requests
+func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) error {
 	// Your code here.
-
 	return nil
+}
+
+//
+// Ask the shardmaster if there's a new configuration;
+// if so, re-configure.
+//
+func (kv *ShardKV) tick() {
 }
 
 // tell the server to shut itself down.
-// please do not change these two functions.
-func (kv *KVPaxos) kill() {
-	DPrintf("Kill(%d): die\n", kv.me)
+// please don't change these two functions.
+func (kv *ShardKV) kill() {
 	atomic.StoreInt32(&kv.dead, 1)
 	kv.l.Close()
 	kv.px.Kill()
 }
 
 // call this to find out if the server is dead.
-func (kv *KVPaxos) isdead() bool {
+func (kv *ShardKV) isdead() bool {
 	return atomic.LoadInt32(&kv.dead) != 0
 }
 
 // please do not change these two functions.
-func (kv *KVPaxos) setunreliable(what bool) {
+func (kv *ShardKV) Setunreliable(what bool) {
 	if what {
 		atomic.StoreInt32(&kv.unreliable, 1)
 	} else {
@@ -72,30 +87,36 @@ func (kv *KVPaxos) setunreliable(what bool) {
 	}
 }
 
-func (kv *KVPaxos) isunreliable() bool {
+func (kv *ShardKV) isunreliable() bool {
 	return atomic.LoadInt32(&kv.unreliable) != 0
 }
 
 //
-// servers[] contains the ports of the set of
-// servers that will cooperate via Paxos to
-// form the fault-tolerant key/value service.
-// me is the index of the current server in servers[].
+// Start a shardkv server.
+// gid is the ID of the server's replica group.
+// shardmasters[] contains the ports of the
+//   servers that implement the shardmaster.
+// servers[] contains the ports of the servers
+//   in this replica group.
+// Me is the index of this server in servers[].
 //
-func StartServer(servers []string, me int) *KVPaxos {
-	// call gob.Register on structures you want
-	// Go's RPC library to marshall/unmarshall.
+func StartServer(gid int64, shardmasters []string,
+	servers []string, me int) *ShardKV {
 	gob.Register(Op{})
 
-	kv := new(KVPaxos)
+	kv := new(ShardKV)
 	kv.me = me
+	kv.gid = gid
+	kv.sm = paxos_shardmaster.MakeClerk(shardmasters)
 
 	// Your initialization code here.
+	// Don't call Join().
 
 	rpcs := rpc.NewServer()
 	rpcs.Register(kv)
 
 	kv.px = paxos.Make(servers, me, rpcs)
+
 
 	os.Remove(servers[me])
 	l, e := net.Listen("unix", servers[me])
@@ -130,9 +151,16 @@ func StartServer(servers []string, me int) *KVPaxos {
 				conn.Close()
 			}
 			if err != nil && kv.isdead() == false {
-				fmt.Printf("KVPaxos(%v) accept: %v\n", me, err.Error())
+				fmt.Printf("ShardKV(%v) accept: %v\n", me, err.Error())
 				kv.kill()
 			}
+		}
+	}()
+
+	go func() {
+		for kv.isdead() == false {
+			kv.tick()
+			time.Sleep(250 * time.Millisecond)
 		}
 	}()
 

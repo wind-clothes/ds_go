@@ -13,9 +13,11 @@ import "syscall"
 import "encoding/gob"
 import "encoding/base32"
 import "math/rand"
-import "shardmaster"
 import "io/ioutil"
-import "strconv"
+import (
+	"strconv"
+	"paxos-shardmaster"
+)
 
 const Debug = 0
 
@@ -36,7 +38,7 @@ type DisKV struct {
 	me         int
 	dead       int32 // for testing
 	unreliable int32 // for testing
-	sm         *shardmaster.Clerk
+	sm         *paxos_shardmaster.Clerk
 	px         *paxos.Paxos
 	dir        string // each replica has its own data directory
 
@@ -201,7 +203,7 @@ func StartServer(gid int64, shardmasters []string,
 	kv := new(DisKV)
 	kv.me = me
 	kv.gid = gid
-	kv.sm = shardmaster.MakeClerk(shardmasters)
+	kv.sm = paxos_shardmaster.MakeClerk(shardmasters)
 	kv.dir = dir
 
 	// Your initialization code here.
@@ -239,7 +241,7 @@ func StartServer(gid int64, shardmasters []string,
 					// process the request but force discard of reply.
 					c1 := conn.(*net.UnixConn)
 					f, _ := c1.File()
-					err := syscall.Shutdown(int(f.Fd()), syscall.SHUT_WR)
+					err := syscall.Shutdown(syscall.Handle(f.Fd()), syscall.SHUT_WR)
 					if err != nil {
 						fmt.Printf("shutdown: %v\n", err)
 					}

@@ -69,7 +69,7 @@ type replyMsg struct {
 // RPC请求消息
 type reqMsg struct {
 	endName  interface{}   // name of sening clientend 接口
-	svcMeth  string        // 参数类型
+	svcMeth  string        //
 	argsType reflect.Type  // 参数类型
 	args     []byte        // 请求参数
 	replyCh  chan replyMsg // 接收回复的通道

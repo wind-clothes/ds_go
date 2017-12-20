@@ -1,4 +1,4 @@
-package shardmaster
+package raft_shardmaster
 
 //
 // Shardmaster clerk.
