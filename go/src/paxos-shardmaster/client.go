@@ -1,13 +1,15 @@
 package paxos_shardmaster
 
+import (
+	"net/rpc"
+	"fmt"
+	"time"
+)
+
 //
 // Shardmaster clerk.
 // Please don't change this file.
 //
-
-import "net/rpc"
-import "time"
-import "fmt"
 
 type Clerk struct {
 	servers []string // shardmaster replicas

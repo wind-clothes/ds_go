@@ -1,18 +1,19 @@
 package raft_shardkv
 
-import "shardmaster"
-import "labrpc"
-import "testing"
-import "os"
+import (
+	"encoding/base64"
+	"labrpc"
+	"raft"
+	"sync"
+	"testing"
+	"shardmaster"
+	"strconv"
+	"os"
+	"runtime"
+	crand "crypto/rand"
+	"math/rand"
+)
 
-// import "log"
-import crand "crypto/rand"
-import "math/rand"
-import "encoding/base64"
-import "sync"
-import "runtime"
-import "raft"
-import "strconv"
 
 func randstring(n int) string {
 	b := make([]byte, 2*n)

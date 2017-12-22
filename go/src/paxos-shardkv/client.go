@@ -1,14 +1,13 @@
 package paxos_shardkv
 
-import "paxos-shardmaster"
-import "net/rpc"
-import "time"
-import "sync"
-import "fmt"
-import "crypto/rand"
 import (
+	"fmt"
 	"math/big"
-	"shardmaster"
+    "crypto/rand"
+	"net/rpc"
+	"paxos-shardmaster"
+	"sync"
+	"time"
 )
 
 type Clerk struct {
@@ -76,7 +75,7 @@ func key2shard(key string) int {
 	if len(key) > 0 {
 		shard = int(key[0])
 	}
-	shard %= shardmaster.NShards
+	shard %= paxos_shardmaster.NShards
 	return shard
 }
 

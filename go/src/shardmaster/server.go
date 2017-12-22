@@ -1,9 +1,11 @@
 package raft_shardmaster
 
-import "raft"
-import "labrpc"
-import "sync"
-import "encoding/gob"
+import (
+	"encoding/gob"
+	"labrpc"
+	"raft"
+	"sync"
+)
 
 type ShardMaster struct {
 	mu      sync.Mutex

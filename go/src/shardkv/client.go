@@ -1,5 +1,13 @@
 package raft_shardkv
 
+import (
+	"crypto/rand"
+	"labrpc"
+	"math/big"
+	"shardmaster"
+	"time"
+)
+
 //
 // client code to talk to a sharded key/value service.
 //
@@ -7,12 +15,6 @@ package raft_shardkv
 // the assignment of shards (keys) to groups, and then
 // talks to the group that holds the key's shard.
 //
-
-import "labrpc"
-import "crypto/rand"
-import "math/big"
-import "shardmaster"
-import "time"
 
 //
 // which shard is a key in?

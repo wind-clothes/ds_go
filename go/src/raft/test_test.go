@@ -1,5 +1,14 @@
 package raft
 
+import (
+	"time"
+	"testing"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"math/rand"
+)
+
 //
 // Raft tests.
 //
@@ -8,12 +17,6 @@ package raft
 // test with the original before submitting.
 //
 
-import "testing"
-import "fmt"
-import "time"
-import "math/rand"
-import "sync/atomic"
-import "sync"
 
 // The tester generously allows solutions to complete elections in one second
 // (much more than the paper's range of timeouts).

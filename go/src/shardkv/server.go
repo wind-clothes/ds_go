@@ -1,10 +1,11 @@
 package raft_shardkv
 
-// import "shardmaster"
-import "labrpc"
-import "raft"
-import "sync"
-import "encoding/gob"
+import (
+	"encoding/gob"
+	"labrpc"
+	"raft"
+	"sync"
+)
 
 type Op struct {
 	// Your definitions here.

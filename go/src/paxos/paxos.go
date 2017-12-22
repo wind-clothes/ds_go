@@ -20,28 +20,47 @@ package paxos
 // px.Min() int -- instances before this seq have been forgotten
 //
 
-import "net"
-import "net/rpc"
-import "log"
+// Paxos库，包含在应用程序中。多个应用程序将运行，每个应用程序都包含一个Paxos对等体。
+//
+// 管理一系列共识的值。
+// 这组对等点是固定的。
+// 处理网络故障（分区，msg丢失，＆c）。
+// 不会持久存储任何东西，所以不能处理crash + restart。
+//
+// 应用程序 接口：
+//
+// px = paxos.Make（peers [] string，me int）
+// px.Start（seq int，v interface {}） - 在新实例上启动协议
+// px.Status（seq int）（Fate，v interface {}） - 获取有关实例的信息
+// px.Done（seq int） - 可以放弃所有的实例<= seq
+// px.Max（）int - 已知最高级实例seq，或-1
+// px.Min（）int - 这个seq之前的实例已经被遗忘了
 
-import "os"
-import "syscall"
-import "sync"
-import "sync/atomic"
-import "fmt"
-import "math/rand"
+import (
+	"sync"
+	"net"
+	"net/rpc"
+	"syscall"
+	"fmt"
+	"sync/atomic"
+	"os"
+	"log"
+	"math/rand"
+)
 
 
 // px.Status() return values, indicating
 // whether an agreement has been decided,
 // or Paxos has not yet reached agreement,
 // or it was agreed but forgotten (i.e. < Min()).
+//
+// px.Status（）返回值，表示协议是否已经决定，或者Paxos还没有达成一致，或者已经同意但忘记了（i.e. <Min（））。
 type Fate int
 
 const (
 	Decided   Fate = iota + 1
-	Pending        // not yet decided.
-	Forgotten      // decided but forgotten.
+	Pending        // not yet decided.尚未决定
+	Forgotten      // decided but forgotten.决定但忘记了。
 )
 
 type Paxos struct {
@@ -73,6 +92,15 @@ type Paxos struct {
 // please use call() to send all RPCs, in client.go and server.go.
 // please do not change this function.
 //
+// call（）使用参数args向服务器srv上的rpcname处理程序发送一个RPC，等待回复，然后回复答复。 答复参数应该是一个指向答复结构的指针。
+//
+// 如果服务器响应，则返回值为true;如果call（）不能联系服务器，则返回false。 特别是，回复内容只有在call（）返回true时才有效。
+//
+// 你应该假设call（）会超时，如果它没有得到服务器的回复，会在一段时间后返回一个错误。
+//
+// 请使用call（）发送所有RPC，在client.go和server.go中。
+// 请不要更改此功能。
+//
 func call(srv string, name string, args interface{}, reply interface{}) bool {
 	c, err := rpc.Dial("unix", srv)
 	if err != nil {
@@ -101,6 +129,9 @@ func call(srv string, name string, args interface{}, reply interface{}) bool {
 // call Status() to find out if/when agreement
 // is reached.
 //
+// 应用程序希望paxos在实例seq上启动协议，建议值为v。
+// Start（）立即返回; 应用程序将调用Status（）来查看是否/何时达成协议。
+//
 func (px *Paxos) Start(seq int, v interface{}) {
 	// Your code here.
 }
@@ -111,6 +142,10 @@ func (px *Paxos) Start(seq int, v interface{}) {
 //
 // see the comments for Min() for more explanation.
 //
+//
+// 这个机器上的应用程序是用所有的实例<= seq完成的。
+// 请参阅Min（）的注释以获得更多解释。
+//
 func (px *Paxos) Done(seq int) {
 	// Your code here.
 }
@@ -119,6 +154,9 @@ func (px *Paxos) Done(seq int) {
 // the application wants to know the
 // highest instance sequence known to
 // this peer.
+//
+//
+//应用程序想要知道该对等方已知的最高实例序列。
 //
 func (px *Paxos) Max() int {
 	// Your code here.
@@ -153,6 +191,19 @@ func (px *Paxos) Max() int {
 // missed -- the other peers therefor cannot forget these
 // instances.
 //
+//
+// Min（）应该返回比z_i中最小的一个， 其中z_i是在对等体i上传递给Done（）的最高数字。如果从未调用Done（），则同位体z_i为-1。
+//
+// Paxos被要求忘记关于它知道的<Min（）的所有实例的所有信息。
+// 关键是释放长时间运行的基于Paxos的服务器的内存。
+//
+// Paxos同伴需要交换最高的Done（）参数才能实现Min（）。
+// 这些交换可以在普通的Paxos协议协议消息上捎带，所以如果一个对等者Min在下一个实例被同意之前不反映另一个Peers Done（），那么它是可以的。
+//
+// Min（）被定义为所有* Paxos对象的最小值的事实意味着Min（）不能增加，直到听到所有的同伴为止。
+// 所以，如果一个对等体死亡或不可达，即使所有可达对等体都调用Done，其他对等体Min（）也不会增加。
+// 原因是，当不可触及的对端恢复正常时，它需要赶上它所触发的实例 - 其他对等实体不能忘记这些实例。
+//
 func (px *Paxos) Min() int {
 	// You code here.
 	return 0
@@ -165,6 +216,9 @@ func (px *Paxos) Min() int {
 // should just inspect the local peer state;
 // it should not contact other Paxos peers.
 //
+// 应用程序想知道这个同伴是否认为一个实例已经被确定，如果是的话，那么商定的值是什么。
+// Status（）应该检查本地对等状态; 它不应该联系其他Paxos同行。
+//
 func (px *Paxos) Status(seq int) (Fate, interface{}) {
 	// Your code here.
 	return Pending, nil
@@ -176,6 +230,11 @@ func (px *Paxos) Status(seq int) (Fate, interface{}) {
 // tell the peer to shut itself down.
 // for testing.
 // please do not change these two functions.
+//
+//
+// 告诉同伴关闭自己。
+// for testing.
+// 请不要改变这两个功能。
 //
 func (px *Paxos) Kill() {
 	atomic.StoreInt32(&px.dead, 1)
@@ -209,6 +268,10 @@ func (px *Paxos) isunreliable() bool {
 // the ports of all the paxos peers (including this one)
 // are in peers[]. this servers port is peers[me].
 //
+//
+// 应用程序想要创建一个paxos对等体。
+// 所有paxos对等端口（包括这个）
+// 在peers[]中。 这个服务器端口是peers[me]。
 func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
 	px := &Paxos{}
 	px.peers = peers

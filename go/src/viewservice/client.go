@@ -1,7 +1,9 @@
 package viewservice
 
-import "net/rpc"
-import "fmt"
+import (
+	"net/rpc"
+	"fmt"
+)
 
 //
 // the viewservice Clerk lives in the client

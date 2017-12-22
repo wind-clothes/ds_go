@@ -1,16 +1,16 @@
 package raft_shardmaster
 
-import "labrpc"
-import "raft"
-import "testing"
-import "os"
-
-// import "log"
-import crand "crypto/rand"
-import "math/rand"
-import "encoding/base64"
-import "sync"
-import "runtime"
+import (
+	crand "crypto/rand"
+	"encoding/base64"
+	"labrpc"
+	"math/rand"
+	"os"
+	"raft"
+	"runtime"
+	"sync"
+	"testing"
+)
 
 func randstring(n int) string {
 	b := make([]byte, 2*n)
@@ -159,7 +159,7 @@ func (cfg *config) makeClient(to []int) *Clerk {
 	endnames := make([]string, cfg.n)
 	for j := 0; j < cfg.n; j++ {
 		endnames[j] = randstring(20)
-		ends[j] = cfg.net.MakeEnd(endnames[j])
+		ends[j] = cfg.net.MakEnd(endnames[j])
 		cfg.net.Connect(endnames[j], j)
 	}
 
@@ -258,7 +258,7 @@ func (cfg *config) StartServer(i int) {
 	// a fresh set of ClientEnds.
 	ends := make([]*labrpc.ClientEnd, cfg.n)
 	for j := 0; j < cfg.n; j++ {
-		ends[j] = cfg.net.MakeEnd(cfg.endnames[i][j])
+		ends[j] = cfg.net.MakEnd(cfg.endnames[i][j])
 		cfg.net.Connect(cfg.endnames[i][j], j)
 	}
 

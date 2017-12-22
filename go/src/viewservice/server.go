@@ -1,14 +1,15 @@
 package viewservice
 
-import "net"
-import "net/rpc"
-import "log"
-import "time"
-import "sync"
-import "fmt"
-import "os"
-import "sync/atomic"
-
+import (
+	"sync"
+	"net"
+	"sync/atomic"
+	"net/rpc"
+	"os"
+	"log"
+	"fmt"
+	"time"
+)
 type ViewServer struct {
 	mu       sync.Mutex
 	l        net.Listener

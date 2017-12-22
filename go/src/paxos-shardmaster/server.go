@@ -1,17 +1,18 @@
 package paxos_shardmaster
 
-import "net"
-import "fmt"
-import "net/rpc"
-import "log"
-
-import "paxos"
-import "sync"
-import "sync/atomic"
-import "os"
-import "syscall"
-import "encoding/gob"
-import "math/rand"
+import (
+	"encoding/gob"
+	"fmt"
+	"log"
+	"math/rand"
+	"net"
+	"net/rpc"
+	"os"
+	"paxos"
+	"sync"
+	"sync/atomic"
+	"syscall"
+)
 
 type ShardMaster struct {
 	mu         sync.Mutex
@@ -24,11 +25,9 @@ type ShardMaster struct {
 	configs []Config // indexed by config num
 }
 
-
 type Op struct {
 	// Your data here.
 }
-
 
 func (sm *ShardMaster) Join(args *JoinArgs, reply *JoinReply) error {
 	// Your code here.
