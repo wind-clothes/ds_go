@@ -37,17 +37,16 @@ package paxos
 // px.Min（）int - 这个seq之前的实例已经被遗忘了
 
 import (
-	"sync"
-	"net"
-	"net/rpc"
-	"syscall"
 	"fmt"
-	"sync/atomic"
-	"os"
 	"log"
 	"math/rand"
+	"net"
+	"net/rpc"
+	"os"
+	"sync"
+	"sync/atomic"
+	"syscall"
 )
-
 
 // px.Status() return values, indicating
 // whether an agreement has been decided,
@@ -71,7 +70,6 @@ type Paxos struct {
 	rpcCount   int32 // for testing
 	peers      []string
 	me         int // index into peers[]
-
 
 	// Your data here.
 }
@@ -120,7 +118,6 @@ func call(srv string, name string, args interface{}, reply interface{}) bool {
 	fmt.Println(err)
 	return false
 }
-
 
 //
 // the application wants paxos to start agreement on
@@ -224,13 +221,10 @@ func (px *Paxos) Status(seq int) (Fate, interface{}) {
 	return Pending, nil
 }
 
-
-
 //
 // tell the peer to shut itself down.
 // for testing.
 // please do not change these two functions.
-//
 //
 // 告诉同伴关闭自己。
 // for testing.
@@ -246,11 +240,13 @@ func (px *Paxos) Kill() {
 //
 // has this peer been asked to shut down?
 //
+// 有这个断点peer被要求关闭？
 func (px *Paxos) isdead() bool {
 	return atomic.LoadInt32(&px.dead) != 0
 }
 
 // please do not change these two functions.
+// 请不要更改这两个功能。
 func (px *Paxos) setunreliable(what bool) {
 	if what {
 		atomic.StoreInt32(&px.unreliable, 1)
@@ -277,7 +273,6 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
 	px.peers = peers
 	px.me = me
 
-
 	// Your initialization code here.
 
 	if rpcs != nil {
@@ -298,8 +293,10 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
 
 		// please do not change any of the following code,
 		// or do anything to subvert it.
+		// 请不要更改下面的任何代码，或者做任何事情来颠覆它。
 
 		// create a thread to accept RPC connections
+		// 创建一个线程来接受RPC连接
 		go func() {
 			for px.isdead() == false {
 				conn, err := px.l.Accept()
@@ -330,7 +327,6 @@ func Make(peers []string, me int, rpcs *rpc.Server) *Paxos {
 			}
 		}()
 	}
-
 
 	return px
 }

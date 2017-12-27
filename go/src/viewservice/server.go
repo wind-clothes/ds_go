@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 )
+
 type ViewServer struct {
 	mu       sync.Mutex
 	l        net.Listener
