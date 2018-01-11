@@ -12,6 +12,7 @@ import "sync/atomic"
 import (
 	"math/rand"
 	"paxos-shardmaster"
+	"paxos"
 )
 
 // information about the servers of one replica group.
@@ -190,7 +191,7 @@ func TestMove(t *testing.T) {
 	ck := tc.clerk()
 
 	// insert one key per shard
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		ck.Put(string('0'+i), string('0'+i))
 	}
 
@@ -199,7 +200,7 @@ func TestMove(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// check that keys are still there.
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		if ck.Get(string('0'+i)) != string('0'+i) {
 			t.Fatalf("missing key/value")
 		}
@@ -212,7 +213,7 @@ func TestMove(t *testing.T) {
 
 	count := int32(0)
 	var mu sync.Mutex
-	for i := 0; i < shardmaster.NShards; i++ {
+	for i := 0; i < paxos_shardmaster.NShards; i++ {
 		go func(me int) {
 			myck := tc.clerk()
 			v := myck.Get(string('0' + me))
@@ -229,11 +230,11 @@ func TestMove(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	ccc := atomic.LoadInt32(&count)
-	if ccc > shardmaster.NShards/3 && ccc < 2*(shardmaster.NShards/3) {
+	if ccc > paxos_shardmaster.NShards/3 && ccc < 2*(paxos_shardmaster.NShards/3) {
 		fmt.Printf("  ... Passed\n")
 	} else {
 		t.Fatalf("%v keys worked after killing 1/2 of groups; wanted %v",
-			ccc, shardmaster.NShards/2)
+			ccc, paxos_shardmaster.NShards/2)
 	}
 }
 

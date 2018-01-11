@@ -72,6 +72,9 @@ type Paxos struct {
 	me         int // index into peers[]
 
 	// Your data here.
+	lrnd       uint64
+	vrnd       uint64
+	v          interface{}
 }
 
 //
