@@ -65,7 +65,7 @@
 //
 // TODO：
 // 您将不得不编写/修改doMap，doReduce方法，并自己安排。这些分别位于common_map.go，common_reduce.go和schedule.go。
-// 你也必须在编写map并reduce功能在../main/wc.go。
+// 你也必须在编写map和reduce功能在../main/wc.go。
 //
 //你不需要修改任何其他文件，但是可能会读取它们 有助于理解其他方法如何融入整体系统的体系结构。
 package mapreduce

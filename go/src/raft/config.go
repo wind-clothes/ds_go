@@ -20,8 +20,12 @@ import (
 // so, while you can modify this code to help you debug, please
 // test with the original before submitting.
 //
-
-
+//
+//支持Raft测试代码。
+//
+//我们将使用原来的config.go来测试你的代码分级。
+//所以，虽然你可以修改这个代码来帮助你调试，但是在提交之前请用原来的测试。
+//
 func randstring(n int) string {
 	b := make([]byte, 2*n)
 	crand.Read(b)

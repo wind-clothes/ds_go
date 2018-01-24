@@ -16,6 +16,15 @@ package raft
 //   should send an ApplyMsg to the service (or tester)
 //   in the same server.
 //
+//
+//这是raft必须暴露给服务（或测试者）的API的概要。 有关更多详细信息，请参阅下面的每个函数的注释。
+//
+// rf = Make(...) 创建一个新的Raft server
+// rf.Start（command interface {}）（index，term，isleader） 开始新的log entry的协议
+// rf.GetState（）（term，isLeader） 问一个raft的当前任期，以及它是否认为是领导者
+// ApplyMsg
+//	每次将一个新的entry提交给log，每个Raft对等体发送一个ApplyMsg给服务（或者测试者)在同一台服务器上
+//
 
 import (
 	//"fmt"
@@ -27,24 +36,29 @@ import (
 	"time"
 )
 
+// 定义节点的raft状态
 const (
 	STATE_LEADER = iota
 	STATE_CANDIDATE
 	STATE_FLLOWER
 
-	HBINTERVAL = 50 * time.Millisecond // 50ms
+	HBINTERVAL = 50 * time.Millisecond // 50ms 心跳时间
 )
-
 //
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
 // tester) on the same server, via the applyCh passed to Make().
 //
+//
+//由于每个Raft对等方都知道提交了连续的日志条目，所以对等方应该通过传递给Make（）的applyCh将ApplyMsg发送到同一服务器上的服务（或测试者）。
+//
 type ApplyMsg struct {
-	Index       int
-	Command     interface{}
-	UseSnapshot bool   // ignore for lab2; only used in lab3
-	Snapshot    []byte // ignore for lab2; only used in lab3
+	Index int
+	Term int
+	Command interface{}
+
+	UseSnapshot bool
+	Snapshot  []byte
 }
 
 type LogEntry struct {
@@ -56,6 +70,16 @@ type LogEntry struct {
 //
 // A Go object implementing a single Raft peer.
 //
+// Go对象实现一个简单的Raft节点实例
+type Raft struct {
+	mu         sync.Mutex
+	peers      []*labrpc.ClientEnd  // 节点
+	persister  *Persister
+	me         int    //当前节点在所有节点的位置
+
+
+}
+
 type Raft struct {
 	mu        sync.Mutex
 	peers     []*labrpc.ClientEnd
@@ -449,7 +473,7 @@ func (rf *Raft) StartSnapshot(snapshot []byte, index int) {
 
 	data := w.Bytes()
 	data = append(data, snapshot...)
-	rf.persister.SaveSnapshot(data)
+	rf.persister.SaveRaftSnapShot(data)
 }
 
 func truncateLog(lastIncludedIndex int, lastIncludedTerm int, log []LogEntry) []LogEntry {
@@ -479,7 +503,7 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 	rf.state = STATE_FLLOWER
 	rf.currentTerm = rf.currentTerm
 
-	rf.persister.SaveSnapshot(args.Data)
+	rf.persister.SaveRaftSnapShot(args.Data)
 
 	rf.log = truncateLog(args.LastIncludedIndex, args.LastIncludedTerm, rf.log)
 
