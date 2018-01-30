@@ -44,6 +44,7 @@ const (
 
 	HBINTERVAL = 50 * time.Millisecond // 50ms 心跳时间
 )
+
 //
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -53,12 +54,12 @@ const (
 //由于每个Raft对等方都知道提交了连续的日志条目，所以对等方应该通过传递给Make（）的applyCh将ApplyMsg发送到同一服务器上的服务（或测试者）。
 //
 type ApplyMsg struct {
-	Index int
-	Term int
+	Index   int
+	Term    int
 	Command interface{}
 
 	UseSnapshot bool
-	Snapshot  []byte
+	Snapshot    []byte
 }
 
 type LogEntry struct {
@@ -72,111 +73,113 @@ type LogEntry struct {
 //
 // Go对象实现一个简单的Raft节点实例
 type Raft struct {
-	mu         sync.Mutex
-	peers      []*labrpc.ClientEnd  // 节点
-	persister  *Persister
-	me         int    //当前节点在所有节点的位置
-
-
-}
-
-type Raft struct {
 	mu        sync.Mutex
-	peers     []*labrpc.ClientEnd
+	peers     []*labrpc.ClientEnd // 节点
 	persister *Persister
-	me        int // index into peers[]
+	me        int //当前节点在所有节点的位置
 
-	// Your data here.
-	// Look at the paper's Figure 2 for a description of what
-	// state a Raft server must maintain.
-
-	//channel
-	state         int
-	voteCount     int
-	chanCommit    chan bool
-	chanHeartbeat chan bool
+	//查看论文的图2中的描述-Raft服务的状态必须维护。
+	state int               	//状态
+	voteCount int            	//投票数
+	chanCommit chan bool
+	chanHearBeat chan bool
 	chanGrantVote chan bool
-	chanLeader    chan bool
-	chanApply     chan ApplyMsg
+	chanLeader chan bool
+	chanApply chan  ApplyMsg
 
-	//persistent state on all server
-	currentTerm int
-	votedFor    int
-	log         []LogEntry
+	//persistent state
+	currentTerm int    //当前多副本内运行的Term
+	votedFor int
+	log    []LogEntry  //保存的日志信息
 
-	//volatile state on all servers
-	commitIndex int
-	lastApplied int
+	// volatile state all servers
+	commitIndex int  //达成共识提交状态的日志索引
+	lastApplied int  //最后发出申请的日志索引
 
-	//volatile state on leader
-	nextIndex  []int
-	matchIndex []int
+	// volatile state on leader
+	nextIndex []int   //
+	matchIndex []int  //
 }
 
 // return currentTerm and whether this server
 // believes it is the leader.
-func (rf *Raft) GetState() (int, bool) {
+//返回currentTerm以及这个服务器是否认为它是领导者。
+func (rf *Raft) GetState() (int,bool)  {
 	return rf.currentTerm, rf.state == STATE_LEADER
 }
-
-func (rf *Raft) getLastIndex() int {
-	return rf.log[len(rf.log)-1].LogIndex
+func (rf *Raft) getLastIndex() int  {
+	return rf.log[len(rf.log) -1].LogIndex
 }
-func (rf *Raft) getLastTerm() int {
-	return rf.log[len(rf.log)-1].LogTerm
+func (rf * Raft) getLastTerm() int{
+	return  rf.log[len(rf.log) -1 ].LogTerm
 }
 func (rf *Raft) IsLeader() bool {
 	return rf.state == STATE_LEADER
 }
-
 // save Raft's persistent state to stable storage,
 // where it can later be retrieved after a crash and restart.
 // see paper's Figure 2 for a description of what should be persistent.
 //
+//将Raft的持久状态保存到稳定的存储中， 在崩溃并重新启动后，它可以在以后被检索到。
+//请参阅图2的描述，以了解什么应该是持久的。
 func (rf *Raft) persist() {
-	// Your code here.
-	// Example:
-	w := new(bytes.Buffer)
-	e := gob.NewEncoder(w)
-	e.Encode(rf.currentTerm)
-	e.Encode(rf.votedFor)
-	e.Encode(rf.log)
-	data := w.Bytes()
+	buffer := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buffer)
+
+	encoder.Encode(rf.currentTerm)
+	encoder.Encode(rf.votedFor)
+	encoder.Encode(rf.log)
+	data := buffer.Bytes()
+
 	rf.persister.SaveRaftState(data)
 }
 
-func (rf *Raft) readSnapshot(data []byte) {
-
+func (rf *Raft) readSnapshot(data []byte)  {
 	rf.readPersist(rf.persister.ReadRaftState())
 
 	if len(data) == 0 {
 		return
 	}
 
-	r := bytes.NewBuffer(data)
-	d := gob.NewDecoder(r)
+	buffer := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(buffer)
 
 	var LastIncludedIndex int
 	var LastIncludedTerm int
-
-	d.Decode(&LastIncludedIndex)
-	d.Decode(&LastIncludedTerm)
+	decoder.Decode(&LastIncludedIndex)
+	decoder.Decode(&LastIncludedTerm)
 
 	rf.commitIndex = LastIncludedIndex
-	rf.lastApplied = LastIncludedIndex
+	rf.lastApplied = LastIncludedTerm
 
-	rf.log = truncateLog(LastIncludedIndex, LastIncludedTerm, rf.log)
+	rf.log = truncateLog(LastIncludedIndex,LastIncludedTerm,rf.log)
 
-	msg := ApplyMsg{UseSnapshot: true, Snapshot: data}
-
+	msg := ApplyMsg{
+		UseSnapshot: true,
+		Snapshot: data,
+	}
 	go func() {
 		rf.chanApply <- msg
 	}()
 }
 
+// 转换持久化的日志信息
+func truncateLog(lastIncludedIndex int, lastIncludedTerm int, log []LogEntry) []LogEntry {
+	var newLogEntries []LogEntry
+	newLogEntries = append(newLogEntries, LogEntry{LogIndex: lastIncludedIndex, LogTerm: lastIncludedTerm})
+
+	for index := len(log) - 1; index >= 0; index-- {
+		if log[index].LogIndex == lastIncludedIndex && log[index].LogTerm == lastIncludedTerm {
+			newLogEntries = append(newLogEntries, log[index+1:]...)
+			break
+		}
+	}
+
+	return newLogEntries
+}
 //
 // restore previously persisted state.
-//
+// 恢复以前存储的状态。
 func (rf *Raft) readPersist(data []byte) {
 	// Your code here.
 	// Example:
@@ -191,11 +194,10 @@ func (rf *Raft) readPersist(data []byte) {
 // example RequestVote RPC arguments structure.
 //
 type RequestVoteArgs struct {
-	// Your data here.
-	Term         int
-	CandidateId  int
-	LastLogTerm  int
-	LastLogIndex int
+	Term			int
+	CandidateId 	int
+	LastLogTerm 	int
+	LastLogIndex 	int
 }
 
 //
@@ -476,20 +478,7 @@ func (rf *Raft) StartSnapshot(snapshot []byte, index int) {
 	rf.persister.SaveRaftSnapShot(data)
 }
 
-func truncateLog(lastIncludedIndex int, lastIncludedTerm int, log []LogEntry) []LogEntry {
 
-	var newLogEntries []LogEntry
-	newLogEntries = append(newLogEntries, LogEntry{LogIndex: lastIncludedIndex, LogTerm: lastIncludedTerm})
-
-	for index := len(log) - 1; index >= 0; index-- {
-		if log[index].LogIndex == lastIncludedIndex && log[index].LogTerm == lastIncludedTerm {
-			newLogEntries = append(newLogEntries, log[index+1:]...)
-			break
-		}
-	}
-
-	return newLogEntries
-}
 
 func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshotReply) {
 	// Your code here.
@@ -660,6 +649,26 @@ func (rf *Raft) boatcastAppendEntries() {
 // Make() must return quickly, so it should start goroutines
 // for any long-running work.
 //
+// 服务或测试者想要创建一个Raft服务器。所有的Raft服务器（包括这个）的端口都是保存在peers[]中。
+// 这台服务器的端口是peers[me]。 所有服务器的peers []数组具有相同的顺序。
+// persister是这个服务器保存其持久状态的地方，并且最初保存最近保存的状态（如果有的话）。
+// applyCh是测试人员或服务期望Raft发送ApplyMsg消息的通道。 Make（）必须快速返回，所以它应该为任何长时间运行的工作启动goroutines。
+func CreateRaftServer(peers []*labrpc.ClientEnd,me int,
+	persister *Persister,applyCh chan ApplyMsg) *Raft {
+	rf := &Raft{}
+	rf.persister = persister
+	rf.peers = peers
+	rf.me = me
+
+	rf.state = STATE_FLLOWER
+	rf.votedFor = -1
+	rf.log = append(rf.log,LogEntry{LogTerm:0})
+	rf.currentTerm = 0
+	rf.chanCommit = make(chan bool,100)
+	rf.chanHearBeat = make(chan bool, 100)
+
+	return nil
+}
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
