@@ -284,7 +284,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		//	fmt.Printf("%v currentTerm: %v rejected %v:%v\n",rf.me,rf.currentTerm,args.LeaderId,args.Term)
 		return
 	}
-	rf.chanHeartbeat <- true
+	rf.chanHearBeat <- true
 	//fmt.Printf("%d respond for %v\n",rf.me,args.LeaderId)
 	if args.Term > rf.currentTerm {
 		rf.currentTerm = args.Term
@@ -453,6 +453,8 @@ func (rf *Raft) StartSnapshot(snapshot []byte, index int) {
 	if index <= baseIndex || index > lastIndex {
 		// in case having installed a snapshot from leader before snapshotting
 		// second condition is a hack
+		//在快照之前安装了来自leader的快照
+		//第二个条件是hack
 		return
 	}
 
@@ -488,7 +490,7 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 		reply.Term = rf.currentTerm
 		return
 	}
-	rf.chanHeartbeat <- true
+	rf.chanHearBeat <- true
 	rf.state = STATE_FLLOWER
 	rf.currentTerm = rf.currentTerm
 
@@ -535,6 +537,13 @@ func (rf *Raft) sendInstallSnapshot(server int, args InstallSnapshotArgs, reply 
 // term. the third return value is true if this server believes it is
 // the leader.
 //
+//
+// 使用Raft的服务（例如k / v服务器）想要开始将下一个命令的协议附加到Raft的日志中。
+// 如果此服务器不是领导者，则返回false。 否则立即启动协议并返回。 这不能保证
+// 因为领导者可能会失败或失去一次选举，所以指挥官将永远致力于Raft日志。
+//
+// 第一个返回值是该命令在提交时将出现的索引。
+// 第二个返回值是当前项。 如果此服务器认为它是领导者，则第三个返回值为true。
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -555,6 +564,10 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 // be needed again. you are not required to do anything
 // in Kill(), but it might be convenient to (for example)
 // turn off debug output from this instance.
+//
+//
+// 当Raft实例不再需要时，测试者调用Kill（）。
+// 您不需要在Kill（）中执行任何操作，但可能会很方便（例如）关闭此实例的调试输出。
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
@@ -682,7 +695,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.log = append(rf.log, LogEntry{LogTerm: 0})
 	rf.currentTerm = 0
 	rf.chanCommit = make(chan bool, 100)
-	rf.chanHeartbeat = make(chan bool, 100)
+	rf.chanHearBeat = make(chan bool, 100)
 	rf.chanGrantVote = make(chan bool, 100)
 	rf.chanLeader = make(chan bool, 100)
 	rf.chanApply = applyCh
@@ -696,7 +709,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 			switch rf.state {
 			case STATE_FLLOWER:
 				select {
-				case <-rf.chanHeartbeat:
+				case <-rf.chanHearBeat:
 				case <-rf.chanGrantVote:
 				case <-time.After(time.Duration(rand.Int63()%333+550) * time.Millisecond):
 					rf.state = STATE_CANDIDATE
@@ -716,7 +729,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 				//fmt.Printf("%v become CANDIDATE %v\n",rf.me,rf.currentTerm)
 				select {
 				case <-time.After(time.Duration(rand.Int63()%333+550) * time.Millisecond):
-				case <-rf.chanHeartbeat:
+				case <-rf.chanHearBeat:
 					rf.state = STATE_FLLOWER
 				//	fmt.Printf("CANDIDATE %v reveive chanHeartbeat\n",rf.me)
 				case <-rf.chanLeader:

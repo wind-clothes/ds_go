@@ -17,11 +17,17 @@ import (
 // test with the original before submitting.
 //
 
-
 // The tester generously allows solutions to complete elections in one second
 // (much more than the paper's range of timeouts).
+// 我们将使用原始test_test.go来测试您的代码以进行评分。
+// 所以，虽然你可以修改这个代码来帮助你调试，请在提交之前用原件进行测试。
+// 测试人员允许解决方案在一秒钟内完成选举（远远超过了论文的超时范围）。
 const RaftElectionTimeout = 1000 * time.Millisecond
 
+func TestInitialElection(t *testing.T)  {
+	severs := 5
+	cfg := make_config(t,severs,false)
+}
 func TestInitialElection(t *testing.T) {
 	//return
 	servers := 5

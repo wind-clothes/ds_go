@@ -1,4 +1,8 @@
-package raft
+package raft_x
+
+import (
+	"sync"
+)
 
 //
 // support for Raft and kvraft to save persistent
@@ -14,7 +18,6 @@ package raft
 //我们将使用原始的persister.go来测试你的代码进行评分。
 //所以，虽然你可以修改这个代码来帮助你调试，但是在提交之前请用原来的测试代码。
 //
-import "sync"
 
 type Persister struct {
 	mu         sync.Mutex // 互斥锁
@@ -36,7 +39,6 @@ func (ps *Persister) Copy() *Persister {
 	np.snapshot = ps.snapshot
 	return np
 }
-
 func (ps *Persister) SaveRaft(data []byte, snapShot []byte) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
@@ -60,8 +62,8 @@ func (ps *Persister) ReadRaftState() []byte {
 	return ps.raft_state
 }
 
-// 保存raft持久数据快照数据
-func (ps *Persister) SaveRaftSnapShot(data []byte) {
+//保存raft持久数据快照数据
+func (ps *Persister) SaveRaftSnapshot(data []byte) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -72,11 +74,13 @@ func (ps *Persister) SaveRaftSnapShot(data []byte) {
 func (ps *Persister) ReadSnapshot() []byte {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
+
 	return ps.snapshot
 }
 
 func (ps *Persister) RaftStateSize() int {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
+
 	return len(ps.raft_state)
 }
