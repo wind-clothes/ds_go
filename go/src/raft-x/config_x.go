@@ -97,7 +97,7 @@ func (cfg *config) crash1(i int) {
 	rf := cfg.rafts[i]
 	if rf != nil {
 		cfg.mu.Unlock()
-		rf.Kill()
+		rf.kill()
 		cfg.mu.Lock()
 		cfg.rafts[i] = nil
 	}
@@ -198,7 +198,7 @@ func (cfg *config) start1(i int) {
 func (cfg *config) cleanup() {
 	for i := 0; i < len(cfg.rafts); i++ {
 		if cfg.rafts[i] != nil {
-			cfg.rafts[i].Kill()
+			cfg.rafts[i].kill()
 		}
 	}
 	atomic.StoreInt32(&cfg.done, 1)
